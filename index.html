@@ -594,7 +594,7 @@ let aiWinner=null, aiReason=null, aiReady=false;
 async function analyzeStocks(list) {
   aiWinner=null; aiReason=null; aiReady=false;
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://meosalkka-api.yusi0812.workers.dev', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
