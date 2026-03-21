@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐살까? 🐶</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Jua&family=Nanum+Gothic:wght@400;700;800&display=swap');
+:root {
+  --grass:#5DBB63; --grass-dark:#3d9442;
+  --sign-wood:#C8A06E; --sign-dark:#8B6324;
+  --cream:#FFF8E7; --text-dark:#3B2A1A; --accent:#FF6B35;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Jua',sans-serif;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+.sky{position:fixed;inset:0;background:linear-gradient(180deg,#4FC3F7 0%,#87CEEB 40%,#B2EBF2 70%,#C8E6C9 100%);z-index:0;}
+.sun{position:fixed;top:30px;right:80px;width:70px;height:70px;background:radial-gradient(circle,#FFE066 40%,#FFD700 70%,#FFA500 100%);border-radius:50%;box-shadow:0 0 40px 15px rgba(255,215,0,0.4);z-index:1;animation:sunPulse 4s ease-in-out infinite;}
+@keyframes sunPulse{0%,100%{box-shadow:0 0 40px 15px rgba(255,215,0,0.4);}50%{box-shadow:0 0 60px 25px rgba(255,215,0,0.5);}}
+.cloud{position:fixed;background:white;border-radius:50px;opacity:0.85;z-index:1;}
+.cloud::before,.cloud::after{content:'';position:absolute;background:white;border-radius:50%;}
+.cloud-1{width:100px;height:35px;top:60px;left:-120px;animation:cloudFloat 20s linear infinite;}
+.cloud-1::before{width:50px;height:50px;top:-25px;left:15px;}.cloud-1::after{width:35px;height:35px;top:-15px;left:50px;}
+.cloud-2{width:80px;height:28px;top:100px;left:-100px;animation:cloudFloat 28s linear infinite 8s;opacity:0.7;}
+.cloud-2::before{width:40px;height:40px;top:-20px;left:10px;}.cloud-2::after{width:30px;height:30px;top:-12px;left:40px;}
+.cloud-3{width:120px;height:40px;top:40px;left:-150px;animation:cloudFloat 35s linear infinite 15s;opacity:0.6;}
+.cloud-3::before{width:55px;height:55px;top:-28px;left:20px;}.cloud-3::after{width:45px;height:42px;top:-18px;left:60px;}
+@keyframes cloudFloat{from{transform:translateX(0);}to{transform:translateX(calc(100vw + 200px));}}
+.ground{position:fixed;bottom:0;left:0;right:0;height:160px;z-index:2;}
+.ground-grass{position:absolute;bottom:70px;left:0;right:0;height:60px;background:linear-gradient(180deg,var(--grass) 0%,var(--grass-dark) 100%);border-radius:50% 50% 0 0/20px 20px 0 0;}
+.ground-soil{position:absolute;bottom:0;left:0;right:0;height:85px;background:linear-gradient(180deg,#A0784A 0%,#8B6914 50%,#6B4F10 100%);}
+.grass-blades{position:absolute;bottom:124px;left:0;right:0;height:20px;}
+.blade{position:absolute;bottom:0;width:4px;background:#4CAF50;border-radius:50% 50% 0 0;transform-origin:bottom center;}
+/* 화면을 위/아래로 분리 */
+.scene{position:fixed;bottom:110px;left:0;right:0;height:160px;z-index:10;}
+/* UI는 상단에 고정, 강아지 영역(하단 270px) 침범 안 함 */
+.ui-panel{position:fixed;top:0;left:0;right:0;bottom:270px;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;overflow-y:auto;padding:12px 0;pointer-events:none;}
+.ui-panel>*{pointer-events:all;}
+.title-box{background:var(--cream);border:3px solid var(--text-dark);border-radius:16px;padding:7px 24px;box-shadow:4px 4px 0 var(--text-dark);text-align:center;}
+.title-box h1{font-size:1.6rem;color:var(--text-dark);}
+.title-box p{font-family:'Nanum Gothic',sans-serif;font-size:0.78rem;color:#888;margin-top:1px;}
+.input-area{background:rgba(255,255,255,0.95);border:3px solid var(--text-dark);border-radius:16px;padding:10px 14px;box-shadow:4px 4px 0 var(--text-dark);width:min(360px,90vw);box-sizing:border-box;}
+.input-area label{font-size:0.82rem;color:var(--text-dark);display:block;margin-bottom:6px;font-family:'Nanum Gothic',sans-serif;font-weight:800;}
+.breed-selector{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px;width:100%;}
+.breed-btn{padding:4px 3px;border:2px solid #ddd;border-radius:10px;background:white;font-family:'Jua',sans-serif;font-size:0.72rem;cursor:pointer;transition:all 0.15s;color:var(--text-dark);display:flex;flex-direction:column;align-items:center;gap:1px;}
+.breed-btn svg{width:44px;height:30px;overflow:visible;}
+.breed-btn:hover{border-color:var(--accent);transform:scale(1.04);}
+.breed-btn.active{border-color:var(--accent);background:#fff0ea;box-shadow:2px 2px 0 var(--accent);}
+.ticker-inputs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;width:100%;}
+.ticker-input{padding:7px 10px;border:2.5px solid #ddd;border-radius:10px;font-family:'Jua',sans-serif;font-size:0.95rem;text-align:center;background:white;transition:border-color 0.2s,box-shadow 0.2s;outline:none;width:100%;box-sizing:border-box;color:var(--text-dark);}
+.ticker-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,107,53,0.15);}
+.ticker-input.filled{border-color:var(--grass);background:#f0fff0;}
+.start-btn{width:100%;padding:10px;background:var(--accent);color:white;border:3px solid var(--text-dark);border-radius:12px;font-family:'Jua',sans-serif;font-size:1.05rem;cursor:pointer;box-shadow:3px 3px 0 var(--text-dark);transition:transform 0.1s,box-shadow 0.1s;}
+.start-btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--text-dark);}
+.start-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--text-dark);}
+.start-btn:disabled{background:#ccc;cursor:not-allowed;transform:none;}
+/* 푯말 */
+.sign-container{position:absolute;display:flex;flex-direction:column;align-items:center;z-index:15;}
+.sign-board{background:var(--sign-wood);border:3px solid var(--sign-dark);border-radius:8px;padding:6px 12px;font-size:1rem;color:var(--text-dark);box-shadow:3px 3px 0 var(--sign-dark);white-space:nowrap;min-width:70px;text-align:center;position:relative;}
+.sign-board::after{content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:12px solid var(--sign-dark);}
+.sign-pole{width:6px;background:linear-gradient(90deg,var(--sign-wood),var(--sign-dark));border-radius:3px;}
+.sign-container.winner .sign-board{background:#FFD700;border-color:#B8860B;box-shadow:3px 3px 0 #B8860B,0 0 20px rgba(255,215,0,0.8);animation:winnerGlow 0.5s ease-in-out infinite alternate;}
+.sign-container.winner .sign-board::after{border-top-color:#B8860B;}
+@keyframes winnerGlow{from{box-shadow:3px 3px 0 #B8860B,0 0 15px rgba(255,215,0,0.7);transform:scale(1);}to{box-shadow:3px 3px 0 #B8860B,0 0 30px rgba(255,215,0,1);transform:scale(1.05);}}
+/* 강아지 */
+#dog{position:absolute;bottom:10px;z-index:20;}
+#dogSvg{width:110px;height:90px;overflow:visible;display:block;}
+/* 꼬리 흔들기 */
+@keyframes tailWag{0%,100%{transform:rotate(-22deg);}50%{transform:rotate(22deg);}}
+#tailGroup{transform-origin:20px 42px;animation:tailWag 0.35s ease-in-out infinite;}
+/* SPOT 안테나 흔들기 */
+@keyframes antennaWag{0%,100%{transform:rotate(-10deg);}50%{transform:rotate(10deg);}}
+#spotAntenna{transform-origin:20px 48px;animation:antennaWag 0.5s ease-in-out infinite;}
+/* 냄새맡기 */
+@keyframes sniffBob{0%,100%{transform:translateY(0);}50%{transform:translateY(5px);}}
+.sniffing #headG{animation:sniffBob 0.3s ease-in-out infinite;}
+/* 말풍선 */
+.speech-bubble{position:absolute;bottom:95px;left:50%;transform:translateX(-50%);background:white;border:2.5px solid var(--text-dark);border-radius:14px;padding:5px 12px;font-size:0.85rem;white-space:nowrap;box-shadow:2px 2px 0 var(--text-dark);pointer-events:none;opacity:0;transition:opacity 0.3s;z-index:30;}
+.speech-bubble.show{opacity:1;}
+.speech-bubble::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid var(--text-dark);}
+.speech-bubble::before{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid white;z-index:1;}
+/* 결과 배너 */
+#result-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:var(--cream);border:5px solid var(--text-dark);border-radius:24px;padding:24px 36px;text-align:center;z-index:100;box-shadow:8px 8px 0 var(--text-dark);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);min-width:300px;max-width:380px;}
+#result-banner.show{transform:translate(-50%,-50%) scale(1);}
+.result-label{font-family:'Nanum Gothic',sans-serif;font-size:0.9rem;color:#999;margin-bottom:4px;}
+.result-ticker{font-size:2.8rem;color:var(--accent);letter-spacing:2px;}
+.result-emoji{font-size:1.8rem;margin:6px 0;}
+.reason-box{background:white;border:2px solid #e0d5c5;border-radius:12px;padding:10px 14px;margin:10px 0;text-align:left;min-height:60px;}
+.reason-title{font-family:'Nanum Gothic',sans-serif;font-size:0.75rem;color:#aaa;margin-bottom:4px;}
+.reason-text{font-family:'Nanum Gothic',sans-serif;font-size:0.88rem;color:var(--text-dark);line-height:1.5;}
+@keyframes dot{0%,80%,100%{opacity:0;}40%{opacity:1;}}
+.dot{animation:dot 1.4s infinite;}.dot:nth-child(2){animation-delay:0.2s;}.dot:nth-child(3){animation-delay:0.4s;}
+.reset-btn{margin-top:10px;padding:9px 22px;background:var(--grass);color:white;border:3px solid var(--text-dark);border-radius:10px;font-family:'Jua',sans-serif;font-size:1rem;cursor:pointer;box-shadow:3px 3px 0 var(--text-dark);}
+.star{position:fixed;pointer-events:none;font-size:1.5rem;z-index:90;animation:starFloat 1.2s ease-out forwards;}
+@keyframes starFloat{0%{opacity:1;transform:translate(0,0) scale(1);}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(0.3);}}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="sun"></div>
+<div class="cloud cloud-1"></div>
+<div class="cloud cloud-2"></div>
+<div class="cloud cloud-3"></div>
+<div class="ground">
+  <div class="grass-blades" id="grassBlades"></div>
+  <div class="ground-grass"></div>
+  <div class="ground-soil"></div>
+</div>
+<div class="scene" id="scene">
+  <div id="dog">
+    <div class="speech-bubble" id="speechBubble">🐾</div>
+    <!-- JS가 초기화 시 SVG 삽입 -->
+  </div>
+</div>
+<div class="ui-panel" id="uiPanel">
+  <div class="title-box">
+    <h1>🐶 오늘 뭐살까?</h1>
+    <p>강아지가 AI로 오늘의 종목을 골라드려요!</p>
+  </div>
+  <div class="input-area">
+    <label>🐕 강아지 선택</label>
+    <div class="breed-selector" id="breedSelector"></div>
+    <label>📌 종목 4개를 입력하세요</label>
+    <div class="ticker-inputs">
+      <input class="ticker-input" id="t1" placeholder="예) 삼성전자">
+      <input class="ticker-input" id="t2" placeholder="예) SK하이닉스">
+      <input class="ticker-input" id="t3" placeholder="예) 카카오">
+      <input class="ticker-input" id="t4" placeholder="예) 네이버">
+    </div>
+    <button class="start-btn" id="startBtn" onclick="startGame()" disabled>🐾 강아지한테 맡기기!</button>
+  </div>
+</div>
+<div id="result-banner">
+  <div class="result-label">📊 AI 분석 추천 종목</div>
+  <div class="result-emoji">🎯</div>
+  <div class="result-ticker" id="resultTicker">-</div>
+  <div class="reason-box">
+    <div class="reason-title">🔍 추천 근거</div>
+    <div class="reason-text" id="reasonText"></div>
+  </div>
+  <button class="reset-btn" onclick="resetGame()">다시 고르기</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// 품종별 SVG (꼬리 왼쪽, 머리 오른쪽, viewBox 0 0 90 70)
+// ═══════════════════════════════════════════════════
+const BREED_SVGS = {
+
+  // ── 시바견 ──────────────────────────────────────
+  shiba: `
+    <g id="tailGroup">
+      <path id="tailPath" d="M20,42 C13,33 8,22 12,13 C14,8 21,10 20,17 C18,24 19,34 20,42Z" fill="#CC5500"/>
+    </g>
+    <g class="leg-bl" transform="translate(29,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#B84A00"/></g>
+    <g class="leg-br" transform="translate(40,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#A04000"/></g>
+    <ellipse cx="42" cy="45" rx="22" ry="12" fill="#CC5500" id="bodyEl"/>
+    <ellipse cx="36" cy="47" rx="10" ry="6" fill="#F5E0B0" opacity="0.85"/>
+    <g class="leg-fl" transform="translate(52,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#B84A00"/></g>
+    <g class="leg-fr" transform="translate(62,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#A04000"/></g>
+    <g id="headG">
+      <ellipse cx="57" cy="21" rx="7" ry="10" fill="#AA3800" transform="rotate(-12,57,21)"/>
+      <ellipse cx="57" cy="21" rx="4" ry="6" fill="#F0A060" opacity="0.5" transform="rotate(-12,57,21)"/>
+      <ellipse cx="79" cy="19" rx="7" ry="10" fill="#AA3800" transform="rotate(12,79,19)"/>
+      <ellipse cx="79" cy="19" rx="4" ry="6" fill="#F0A060" opacity="0.5" transform="rotate(12,79,19)"/>
+      <ellipse cx="68" cy="31" rx="17" ry="16" fill="#CC5500"/>
+      <ellipse cx="58" cy="35" rx="7" ry="5" fill="#F5E0B0" opacity="0.9"/>
+      <ellipse cx="78" cy="35" rx="7" ry="5" fill="#F5E0B0" opacity="0.9"/>
+      <ellipse cx="70" cy="38" rx="9" ry="6" fill="#F0C07A"/>
+      <ellipse cx="70" cy="35" rx="4" ry="2.5" fill="#2C0E04"/>
+      <circle cx="62" cy="26" r="4.5" fill="white"/><circle cx="74" cy="26" r="4.5" fill="white"/>
+      <circle cx="63" cy="26" r="3" fill="#180A02" id="eyeL"/><circle cx="75" cy="26" r="3" fill="#180A02" id="eyeR"/>
+      <circle cx="64" cy="25" r="1.2" fill="white"/><circle cx="76" cy="25" r="1.2" fill="white"/>
+      <path d="M65 41 Q70 45 75 41" stroke="#2C0E04" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="44" rx="4" ry="3" fill="#FF7777" id="tongue" opacity="0"/>
+    </g>`,
+
+  // ── 푸들 ──────────────────────────────────────
+  poodle: `
+    <g id="tailGroup">
+      <path id="tailPath" d="M20,40 C16,32 18,23 20,17 C22,13 26,15 25,20 C23,25 21,33 20,40Z" fill="#C8C0B0"/>
+      <circle cx="19" cy="13" r="6" fill="#DDD5C5"/>
+    </g>
+    <g class="leg-bl" transform="translate(29,51)"><rect x="-4" y="0" width="8" height="14" rx="4" fill="#C0B8A8"/><circle cx="0" cy="4" r="5" fill="#D8D0C0"/></g>
+    <g class="leg-br" transform="translate(40,51)"><rect x="-4" y="0" width="8" height="14" rx="4" fill="#B0A898"/><circle cx="0" cy="4" r="5" fill="#C8C0B0"/></g>
+    <ellipse cx="42" cy="44" rx="22" ry="12" fill="#D0C8B8" id="bodyEl"/>
+    <circle cx="42" cy="41" r="8" fill="#E0D8C8" opacity="0.8"/>
+    <g class="leg-fl" transform="translate(52,51)"><rect x="-4" y="0" width="8" height="14" rx="4" fill="#C0B8A8"/><circle cx="0" cy="4" r="5" fill="#D8D0C0"/></g>
+    <g class="leg-fr" transform="translate(62,51)"><rect x="-4" y="0" width="8" height="14" rx="4" fill="#B0A898"/><circle cx="0" cy="4" r="5" fill="#C8C0B0"/></g>
+    <g id="headG">
+      <ellipse cx="55" cy="29" rx="6" ry="14" fill="#B8B0A0" transform="rotate(-5,55,29)"/>
+      <ellipse cx="81" cy="27" rx="6" ry="14" fill="#B8B0A0" transform="rotate(5,81,27)"/>
+      <ellipse cx="68" cy="30" rx="16" ry="15" fill="#D0C8B8"/>
+      <circle cx="68" cy="15" r="9" fill="#E0D8C8"/>
+      <ellipse cx="70" cy="38" rx="8" ry="5" fill="#E8E0D0"/>
+      <ellipse cx="70" cy="35" rx="3.5" ry="2.5" fill="#444"/>
+      <circle cx="62" cy="26" r="4" fill="white"/><circle cx="74" cy="26" r="4" fill="white"/>
+      <circle cx="63" cy="26" r="2.8" fill="#222" id="eyeL"/><circle cx="75" cy="26" r="2.8" fill="#222" id="eyeR"/>
+      <circle cx="64" cy="25" r="1.1" fill="white"/><circle cx="76" cy="25" r="1.1" fill="white"/>
+      <path d="M66 41 Q70 44 74 41" stroke="#444" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="44" rx="3.5" ry="2.5" fill="#FF9999" id="tongue" opacity="0"/>
+      <ellipse cx="60" cy="33" rx="4" ry="2.5" fill="#FFB0C0" opacity="0.35"/>
+      <ellipse cx="77" cy="33" rx="4" ry="2.5" fill="#FFB0C0" opacity="0.35"/>
+    </g>`,
+
+  // ── 달마시안 ──────────────────────────────────────
+  dalmatian: `
+    <g id="tailGroup">
+      <path id="tailPath" d="M20,42 C15,35 10,27 13,19 C15,14 20,15 19,21 C17,27 19,36 20,42Z" fill="#E8E8E8" stroke="#aaa" stroke-width="0.5"/>
+      <ellipse cx="14" cy="18" rx="3" ry="2.5" fill="#222" transform="rotate(-20,14,18)"/>
+    </g>
+    <g class="leg-bl" transform="translate(29,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#EFEFEF"/><ellipse cx="-1" cy="8" rx="2.5" ry="2" fill="#333"/></g>
+    <g class="leg-br" transform="translate(40,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#E0E0E0"/></g>
+    <ellipse cx="42" cy="45" rx="22" ry="12" fill="#F5F5F5" id="bodyEl"/>
+    <ellipse cx="34" cy="42" rx="5" ry="3.5" fill="#222"/>
+    <ellipse cx="46" cy="48" rx="4" ry="3" fill="#333"/>
+    <ellipse cx="53" cy="43" rx="3" ry="2.5" fill="#222"/>
+    <ellipse cx="27" cy="46" rx="2.5" ry="2" fill="#444"/>
+    <g class="leg-fl" transform="translate(52,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#EFEFEF"/></g>
+    <g class="leg-fr" transform="translate(62,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#E0E0E0"/><ellipse cx="0" cy="9" rx="2" ry="1.5" fill="#333"/></g>
+    <g id="headG">
+      <ellipse cx="57" cy="21" rx="7" ry="10" fill="#E8E8E8" transform="rotate(-10,57,21)"/>
+      <ellipse cx="56" cy="19" rx="3.5" ry="5" fill="#222" opacity="0.75" transform="rotate(-10,56,19)"/>
+      <ellipse cx="79" cy="19" rx="7" ry="10" fill="#E8E8E8" transform="rotate(10,79,19)"/>
+      <ellipse cx="80" cy="17" rx="3.5" ry="5" fill="#333" opacity="0.75" transform="rotate(10,80,17)"/>
+      <ellipse cx="68" cy="31" rx="17" ry="16" fill="#F5F5F5"/>
+      <ellipse cx="60" cy="25" rx="3.5" ry="3" fill="#222"/>
+      <ellipse cx="76" cy="23" rx="3" ry="2.5" fill="#333"/>
+      <ellipse cx="68" cy="19" rx="2.5" ry="2" fill="#222"/>
+      <ellipse cx="70" cy="38" rx="9" ry="6" fill="#EEE"/>
+      <ellipse cx="70" cy="35" rx="4" ry="2.5" fill="#111"/>
+      <circle cx="62" cy="27" r="4.5" fill="white"/><circle cx="74" cy="27" r="4.5" fill="white"/>
+      <circle cx="63" cy="27" r="3" fill="#111" id="eyeL"/><circle cx="75" cy="27" r="3" fill="#111" id="eyeR"/>
+      <circle cx="64" cy="26" r="1.2" fill="white"/><circle cx="76" cy="26" r="1.2" fill="white"/>
+      <path d="M65 41 Q70 45 75 41" stroke="#111" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="44" rx="4" ry="3" fill="#FF8888" id="tongue" opacity="0"/>
+    </g>`,
+
+  // ── 골든리트리버 ──────────────────────────────────────
+  golden: `
+    <g id="tailGroup">
+      <path id="tailPath" d="M20,42 C13,33 7,22 11,13 C13,8 21,11 20,18 C18,25 19,34 20,42Z" fill="#D49020"/>
+    </g>
+    <g class="leg-bl" transform="translate(29,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#C48018"/></g>
+    <g class="leg-br" transform="translate(40,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#B07010"/></g>
+    <ellipse cx="42" cy="45" rx="22" ry="12" fill="#DCA028" id="bodyEl"/>
+    <ellipse cx="42" cy="48" rx="13" ry="7" fill="#F0C858" opacity="0.65"/>
+    <g class="leg-fl" transform="translate(52,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#C48018"/></g>
+    <g class="leg-fr" transform="translate(62,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#B07010"/></g>
+    <g id="headG">
+      <ellipse cx="55" cy="27" rx="8" ry="13" fill="#C49020" transform="rotate(-5,55,27)"/>
+      <ellipse cx="81" cy="25" rx="8" ry="13" fill="#C49020" transform="rotate(5,81,25)"/>
+      <ellipse cx="68" cy="31" rx="18" ry="17" fill="#DCA028"/>
+      <ellipse cx="70" cy="39" rx="11" ry="7" fill="#F0C858"/>
+      <ellipse cx="70" cy="35" rx="5" ry="3" fill="#3C1804"/>
+      <circle cx="62" cy="26" r="4.5" fill="white"/><circle cx="74" cy="26" r="4.5" fill="white"/>
+      <circle cx="63" cy="26" r="3" fill="#2C1004" id="eyeL"/><circle cx="75" cy="26" r="3" fill="#2C1004" id="eyeR"/>
+      <circle cx="64" cy="25" r="1.3" fill="white"/><circle cx="76" cy="25" r="1.3" fill="white"/>
+      <path d="M63 42 Q70 47 77 42" stroke="#3C1804" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="46" rx="5" ry="3.5" fill="#FF8888" id="tongue" opacity="0"/>
+      <ellipse cx="59" cy="33" rx="5" ry="3" fill="#FFB840" opacity="0.4"/>
+      <ellipse cx="78" cy="33" rx="5" ry="3" fill="#FFB840" opacity="0.4"/>
+    </g>`,
+
+  // ── 허스키 ──────────────────────────────────────
+  husky: `
+    <g id="tailGroup">
+      <path id="tailPath" d="M20,42 C13,32 8,21 12,12 C14,7 21,9 20,16 C18,23 18,33 20,42Z" fill="#6878A0"/>
+      <path d="M20,42 C17,34 15,25 17,17 C18,13 20,14 20,19 C19,26 19,35 20,42Z" fill="white" opacity="0.55"/>
+    </g>
+    <g class="leg-bl" transform="translate(29,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#6878A0"/></g>
+    <g class="leg-br" transform="translate(40,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#505870"/></g>
+    <ellipse cx="42" cy="45" rx="22" ry="12" fill="#7888A8" id="bodyEl"/>
+    <ellipse cx="42" cy="48" rx="14" ry="7" fill="white" opacity="0.7"/>
+    <g class="leg-fl" transform="translate(52,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#6878A0"/></g>
+    <g class="leg-fr" transform="translate(62,51)"><rect x="-4" y="0" width="8" height="16" rx="4" fill="#505870"/></g>
+    <g id="headG">
+      <polygon points="55,28 50,9 61,22" fill="#505870"/>
+      <polygon points="55,28 51,13 59,22" fill="#E8E0D8" opacity="0.75"/>
+      <polygon points="81,26 76,7 87,20" fill="#505870"/>
+      <polygon points="81,26 77,11 85,20" fill="#E8E0D8" opacity="0.75"/>
+      <ellipse cx="68" cy="31" rx="17" ry="16" fill="#7888A8"/>
+      <ellipse cx="68" cy="34" rx="13" ry="10" fill="white" opacity="0.45"/>
+      <ellipse cx="70" cy="38" rx="9" ry="6" fill="#E8E0D8"/>
+      <ellipse cx="70" cy="35" rx="4" ry="2.5" fill="#202030"/>
+      <circle cx="62" cy="26" r="4.5" fill="white"/><circle cx="74" cy="26" r="4.5" fill="white"/>
+      <circle cx="63" cy="26" r="3" fill="#2050C8" id="eyeL"/><circle cx="75" cy="26" r="3" fill="#2050C8" id="eyeR"/>
+      <circle cx="64" cy="25" r="1.2" fill="white"/><circle cx="76" cy="25" r="1.2" fill="white"/>
+      <path d="M65 41 Q70 45 75 41" stroke="#202030" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="70" cy="44" rx="4" ry="3" fill="#FF8888" id="tongue" opacity="0"/>
+    </g>`,
+
+  // ── 보스턴다이나믹스 SPOT 🤖 ──────────────────────────────────────
+  spot: `
+    <g id="spotAntenna">
+      <rect x="18" y="20" width="4" height="22" rx="2" fill="#555"/>
+      <circle cx="20" cy="18" r="5" fill="#FF3333"/>
+      <circle cx="20" cy="18" r="2.5" fill="#FF9999"/>
+    </g>
+    <!-- 뒷다리 (관절형) -->
+    <g class="spot-bl" transform="translate(28,46)">
+      <rect x="-3" y="0" width="6" height="7" rx="1" fill="#666"/><rect x="-3" y="8" width="6" height="7" rx="1" fill="#555"/><rect x="-4" y="15" width="8" height="4" rx="2" fill="#444"/>
+    </g>
+    <g class="spot-br" transform="translate(39,46)">
+      <rect x="-3" y="0" width="6" height="7" rx="1" fill="#555"/><rect x="-3" y="8" width="6" height="7" rx="1" fill="#444"/><rect x="-4" y="15" width="8" height="4" rx="2" fill="#333"/>
+    </g>
+    <!-- 몸통 -->
+    <rect x="20" y="34" width="46" height="20" rx="5" fill="#666" id="bodyEl"/>
+    <rect x="23" y="37" width="40" height="14" rx="3" fill="#777"/>
+    <!-- 배터리 -->
+    <rect x="33" y="41" width="18" height="6" rx="1" fill="#333"/>
+    <rect x="34" y="42" width="13" height="4" rx="1" fill="#44DD44" opacity="0.9"/>
+    <!-- 앞다리 -->
+    <g class="spot-lf" transform="translate(52,46)">
+      <rect x="-3" y="0" width="6" height="7" rx="1" fill="#666"/><rect x="-3" y="8" width="6" height="7" rx="1" fill="#555"/><rect x="-4" y="15" width="8" height="4" rx="2" fill="#444"/>
+    </g>
+    <g class="spot-lr" transform="translate(63,46)">
+      <rect x="-3" y="0" width="6" height="7" rx="1" fill="#555"/><rect x="-3" y="8" width="6" height="7" rx="1" fill="#444"/><rect x="-4" y="15" width="8" height="4" rx="2" fill="#333"/>
+    </g>
+    <!-- 머리 -->
+    <g id="headG">
+      <rect x="55" y="18" width="30" height="22" rx="5" fill="#666"/>
+      <rect x="57" y="20" width="26" height="18" rx="4" fill="#777"/>
+      <!-- 카메라 눈 -->
+      <rect x="58" y="22" width="9" height="9" rx="2" fill="#111"/>
+      <rect x="72" y="22" width="9" height="9" rx="2" fill="#111"/>
+      <circle cx="62" cy="26" r="3.5" fill="#0088FF" id="eyeL"/>
+      <circle cx="76" cy="26" r="3.5" fill="#0088FF" id="eyeR"/>
+      <circle cx="63" cy="25" r="1.3" fill="white"/>
+      <circle cx="77" cy="25" r="1.3" fill="white"/>
+      <!-- 센서 -->
+      <rect x="62" y="33" width="12" height="5" rx="2" fill="#444"/>
+      <rect x="63" y="34" width="8" height="3" rx="1" fill="#00FFAA" opacity="0.8" id="tongue"/>
+      <!-- 입 그릴 -->
+      <path d="M59 39 Q68 36 77 39" stroke="#444" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <!-- 이마 로고 -->
+      <rect x="60" y="14" width="16" height="5" rx="2" fill="#444"/>
+      <rect x="61" y="15" width="14" height="3" rx="1" fill="#FF3333" opacity="0.9"/>
+    </g>`,
+};
+
+// ═══════════════════════════════════════════════════
+// 품종 데이터
+// ═══════════════════════════════════════════════════
+const BREEDS = [
+  { id:'shiba',      name:'시바견',   emoji:'🦊', personality:'직감이 강하고 고집스러운' },
+  { id:'poodle',     name:'푸들',     emoji:'🐩', personality:'영리하고 분석적인' },
+  { id:'dalmatian',  name:'달마시안', emoji:'🐕', personality:'에너지 넘치고 대담한' },
+  { id:'golden',     name:'골든',     emoji:'🐶', personality:'친절하고 낙관적인' },
+  { id:'husky',      name:'허스키',   emoji:'🐺', personality:'자유분방하고 본능적인' },
+  { id:'spot',       name:'SPOT',     emoji:'🤖', personality:'초정밀 데이터 기반의' },
+];
+
+let currentBreed = BREEDS[0];
+
+// 현재 SVG 요소 getter
+const getDogSvg  = () => document.getElementById('dogSvg');
+const getTongue  = () => document.getElementById('tongue');
+
+// SVG 생성 (외부 <svg> 태그 포함)
+function buildSVG(breed) {
+  return `<svg viewBox="0 0 90 70" id="dogSvg" style="overflow:visible;display:block;width:110px;height:90px;">
+    ${BREED_SVGS[breed.id]}
+  </svg>`;
+}
+
+// 강아지 SVG 교체
+function applyBreed(breed) {
+  currentBreed = breed;
+  const dogDiv = document.getElementById('dog');
+  const old = document.getElementById('dogSvg');
+  if (old) old.remove();
+  dogDiv.insertAdjacentHTML('beforeend', buildSVG(breed));
+  const svg = getDogSvg();
+  if (svg) svg.style.transform = dogDir === -1 ? 'scaleX(-1)' : 'scaleX(1)';
+  setDogState(dogState);
+}
+
+// ═══════════════════════════════════════════════════
+// 3x2 선택 버튼 생성
+// ═══════════════════════════════════════════════════
+const breedSelector = document.getElementById('breedSelector');
+BREEDS.forEach(breed => {
+  const btn = document.createElement('button');
+  btn.className = 'breed-btn' + (breed.id === currentBreed.id ? ' active' : '');
+  // 미리보기용 작은 SVG
+  btn.innerHTML = `<svg viewBox="0 0 90 70" style="width:52px;height:36px;overflow:visible;">${BREED_SVGS[breed.id]}</svg><span>${breed.name}</span>`;
+  btn.onclick = () => {
+    document.querySelectorAll('.breed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyBreed(breed);
+  };
+  breedSelector.appendChild(btn);
+});
+
+// ═══════════════════════════════════════════════════
+// 잔디
+// ═══════════════════════════════════════════════════
+const bladesEl = document.getElementById('grassBlades');
+for (let i = 0; i < 80; i++) {
+  const b = document.createElement('div');
+  b.className = 'blade';
+  b.style.left = (Math.random()*100)+'%';
+  b.style.height = (10+Math.random()*14)+'px';
+  b.style.transform = `rotate(${(Math.random()-0.5)*30}deg)`;
+  b.style.opacity = 0.6+Math.random()*0.4;
+  b.style.background = `hsl(${120+Math.random()*20},60%,${35+Math.random()*15}%)`;
+  bladesEl.appendChild(b);
+}
+
+// ═══════════════════════════════════════════════════
+// 입력
+// ═══════════════════════════════════════════════════
+const inputs = ['t1','t2','t3','t4'].map(id => document.getElementById(id));
+inputs.forEach(inp => {
+  inp.addEventListener('input', () => {
+    inp.classList.toggle('filled', inp.value.trim().length > 0);
+    document.getElementById('startBtn').disabled = !inputs.every(i => i.value.trim().length > 0);
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// 강아지 상태
+// ═══════════════════════════════════════════════════
+const dogEl   = document.getElementById('dog');
+const bubble  = document.getElementById('speechBubble');
+const SCENE_W = window.innerWidth;
+let dogX=80, dogDir=1, dogState='idle';
+let animFrame, gamePhase='input', signs=[], tickers=[], targetSignIdx=-1;
+
+// ── 다리 JS 애니메이션 ─────────────────────────────────────────
+// CSS transform-origin + SVG translate가 꼬이는 문제를 피하기 위해
+// rect의 transform 속성을 JS로 직접 제어
+let legAnimFrame = null;
+let legPhase = 0;
+
+function startLegAnim() {
+  if (legAnimFrame) return;
+  function loop() {
+    legPhase += 0.12;
+    const svg = getDogSvg();
+    if (!svg) { legAnimFrame = null; return; }
+
+    if (currentBreed.id === 'spot') {
+      // SPOT: 관절형 다리 - 각 그룹 전체를 rotate
+      const legs = [
+        {cls:'spot-lf', phase: legPhase},
+        {cls:'spot-lr', phase: legPhase + Math.PI},
+        {cls:'spot-bl', phase: legPhase + Math.PI},
+        {cls:'spot-br', phase: legPhase},
+      ];
+      legs.forEach(({cls, phase}) => {
+        const g = svg.querySelector('.'+cls);
+        if (!g) return;
+        const angle = Math.sin(phase) * 22;
+        // translate 값 가져와서 그 기준으로 rotate
+        const t = g.getAttribute('transform') || '';
+        const m = t.match(/translate\(([^,]+),([^)]+)\)/);
+        if (m) {
+          const tx = parseFloat(m[1]), ty = parseFloat(m[2]);
+          g.setAttribute('transform', `translate(${tx},${ty}) rotate(${angle},0,0)`);
+        }
+      });
+    } else {
+      // 일반 강아지: rect에 직접 rotate (translate 없이 rect 내부 좌표 기준)
+      // 다리 rect의 top-center = (0, 0) 기준으로 rotate
+      const legs = [
+        {cls:'leg-fl', phase: legPhase},
+        {cls:'leg-fr', phase: legPhase + Math.PI},
+        {cls:'leg-bl', phase: legPhase + Math.PI},
+        {cls:'leg-br', phase: legPhase},
+      ];
+      legs.forEach(({cls, phase}) => {
+        const g = svg.querySelector('.'+cls);
+        if (!g) return;
+        const rect = g.querySelector('rect');
+        if (!rect) return;
+        const angle = Math.sin(phase) * 18;
+        // rect의 top-center는 x=0, y=0 (g의 translate 기준)
+        rect.setAttribute('transform', `rotate(${angle},0,0)`);
+      });
+    }
+    legAnimFrame = requestAnimationFrame(loop);
+  }
+  legAnimFrame = requestAnimationFrame(loop);
+}
+
+function stopLegAnim() {
+  if (legAnimFrame) { cancelAnimationFrame(legAnimFrame); legAnimFrame = null; }
+  // 다리 원위치
+  const svg = getDogSvg();
+  if (!svg) return;
+  svg.querySelectorAll('.leg-fl rect,.leg-fr rect,.leg-bl rect,.leg-br rect').forEach(r => r.removeAttribute('transform'));
+  const spotLegs = ['spot-lf','spot-lr','spot-bl','spot-br'];
+  spotLegs.forEach(cls => {
+    const g = svg.querySelector('.'+cls);
+    if (!g) return;
+    const t = g.getAttribute('transform')||'';
+    const m = t.match(/translate\(([^,]+),([^)]+)\)/);
+    if (m) g.setAttribute('transform', `translate(${m[1]},${m[2]})`);
+  });
+}
+
+function setDogState(state) {
+  dogState = state;
+  const svg = getDogSvg();
+  if (!svg) return;
+  svg.classList.remove('walking','sniffing','sitting');
+  if (state === 'walking') {
+    svg.classList.add('walking');
+    startLegAnim();
+  } else {
+    stopLegAnim();
+    if (state === 'sniffing') svg.classList.add('sniffing');
+    if (state === 'sitting')  svg.classList.add('sitting');
+  }
+}
+
+function showBubble(text, dur=2000) {
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  if (dur > 0) setTimeout(() => bubble.classList.remove('show'), dur);
+}
+
+function placeDog(x) {
+  dogX = x;
+  dogEl.style.left = dogX + 'px';
+  const svg = getDogSvg();
+  if (svg) svg.style.transform = dogDir===-1 ? 'scaleX(-1)' : 'scaleX(1)';
+}
+
+function flipDog() {
+  const svg = getDogSvg();
+  if (svg) svg.style.transform = dogDir===-1 ? 'scaleX(-1)' : 'scaleX(1)';
+}
+
+// ═══════════════════════════════════════════════════
+// 망설임 모션
+// ═══════════════════════════════════════════════════
+function hesitateAndChoose(destX, onDone) {
+  const steps = [{dx:+30,sp:2.5},{dx:-25,sp:2},{dx:+20,sp:2.5},{dx:-15,sp:2},{dx:+10,sp:3}];
+  function runStep(tx, sp, done) {
+    dogDir = tx > dogX ? 1 : -1; flipDog();
+    function tick() {
+      dogX += dogDir * sp;
+      dogEl.style.left = dogX + 'px';
+      flipDog();
+      Math.abs(dogX-tx) > sp+1 ? requestAnimationFrame(tick) : done();
+    }
+    requestAnimationFrame(tick);
+  }
+  runStep(destX-60, 2.5, () => {
+    showBubble('이건가...? 저건가...? 😰', 99999);
+    setDogState('sniffing');
+    let i=0;
+    function next() {
+      if (i>=steps.length) {
+        bubble.classList.remove('show');
+        showBubble('결정!! 🎯', 99999);
+        setDogState('walking');
+        runStep(destX, 3.5, onDone);
+        return;
+      }
+      const s=steps[i++];
+      runStep(dogX+s.dx, s.sp, () => setTimeout(next, 180));
+    }
+    setTimeout(next, 600);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// 푯말 생성
+// ═══════════════════════════════════════════════════
+function createSigns(list) {
+  document.querySelectorAll('.sign-container').forEach(e=>e.remove());
+  signs = [];
+  const scene = document.getElementById('scene');
+  const margin=80, step=(SCENE_W-margin*2)/(list.length-1);
+  list.forEach((name,i) => {
+    const div=document.createElement('div');
+    div.className='sign-container';
+    const posX=margin+i*step;
+    div.style.left=posX+'px'; div.style.bottom='8px';
+    div.innerHTML=`<div class="sign-board">${name}</div><div class="sign-pole" style="height:${55+Math.random()*20}px"></div>`;
+    scene.appendChild(div);
+    signs.push({el:div, x:posX, ticker:name});
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// AI 분석
+// ═══════════════════════════════════════════════════
+let aiWinner=null, aiReason=null, aiReady=false;
+
+async function analyzeStocks(list) {
+  aiWinner=null; aiReason=null; aiReady=false;
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{role:'user', content:
+`당신은 한국 주식 전문 애널리스트입니다.
+아래 4개 종목을 분석해서 오늘 매수하기에 가장 유망한 종목 1개를 추천해주세요.
+
+종목: ${list.join(', ')}
+
+분석 기준:
+- 최근 주가 모멘텀 및 기술적 지표 (이동평균, RSI, 거래량)
+- 업종 전망 및 시장 환경
+- 재무 건전성 (PER, PBR, 영업이익률)
+- 최근 뉴스 및 이슈
+
+반드시 아래 JSON 형식으로만 답하세요:
+{"winner":"종목명","reason":"3~4문장 한국어 분석근거"}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const clean = (data.content?.[0]?.text||'').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    const matched = list.find(t => t===parsed.winner || parsed.winner?.includes(t) || t.includes(parsed.winner));
+    aiWinner = matched || list[0];
+    aiReason = parsed.reason || '분석 결과를 불러오지 못했습니다.';
+  } catch(e) {
+    aiWinner = list[0];
+    aiReason = '일시적으로 분석 서버에 연결하지 못했습니다.';
+  }
+  aiReady = true;
+}
+
+// ═══════════════════════════════════════════════════
+// 게임 흐름
+// ═══════════════════════════════════════════════════
+function startGame() {
+  tickers = inputs.map(i=>i.value.trim()).filter(t=>t.length>0);
+  if (tickers.length<4) return;
+  document.getElementById('uiPanel').style.opacity='0';
+  document.getElementById('uiPanel').style.pointerEvents='none';
+  gamePhase='roaming';
+  createSigns(tickers);
+  placeDog(50);
+  setDogState('walking');
+  showBubble('재무제표 분석 중... 📊', 2000);
+  analyzeStocks(tickers);
+  roamPhase();
+}
+
+function roamPhase() {
+  let roamTime=0;
+  const minRoam=4000;
+  const msgs=['열심히 분석 중... 📊','재무제표 보는 중! 🔍','PER 확인 중... 📈','모멘텀 체크! 💹','거의 다 됐어... 🤔'];
+  let msgIdx=0;
+  let target=signs[Math.floor(Math.random()*signs.length)].x-30;
+  dogDir = target>dogX?1:-1;
+
+  animFrame = requestAnimationFrame(function loop() {
+    if (gamePhase!=='roaming') return;
+    roamTime+=16;
+    dogX+=dogDir*1.5;
+    dogEl.style.left=dogX+'px';
+    flipDog();
+    if (Math.abs(dogX-target)<5 && dogState!=='sniffing') {
+      setDogState('sniffing');
+      const t=getTongue(); if(t) t.style.opacity='0.9';
+      showBubble(msgs[msgIdx++%msgs.length], 1200);
+      setTimeout(()=>{
+        const t=getTongue(); if(t) t.style.opacity='0';
+        if (aiReady && roamTime>=minRoam) { gamePhase='choosing'; chooseSign(); return; }
+        let next;
+        do { next=signs[Math.floor(Math.random()*signs.length)]; }
+        while (Math.abs(next.x-dogX)<60 && signs.length>1);
+        target=next.x-30;
+        dogDir=target>dogX?1:-1;
+        setDogState('walking');
+      }, 900);
+    }
+    if (dogX<20) dogDir=1;
+    if (dogX>SCENE_W-120) dogDir=-1;
+    if (aiReady && roamTime>=minRoam && dogState!=='sniffing') { gamePhase='choosing'; chooseSign(); return; }
+    requestAnimationFrame(loop);
+  });
+}
+
+function chooseSign() {
+  cancelAnimationFrame(animFrame);
+  targetSignIdx = signs.findIndex(s=>s.ticker===aiWinner);
+  if (targetSignIdx===-1) targetSignIdx=0;
+  const tSign = signs[targetSignIdx];
+  setDogState('walking');
+  showBubble('분석 완료!! 🎯', 1500);
+  hesitateAndChoose(tSign.x-30, ()=>{
+    setDogState('sitting');
+    const t=getTongue(); if(t) t.style.opacity='1';
+    bubble.classList.remove('show');
+    showBubble('멍멍!! 이게 최고야! 📊', 99999);
+    tSign.el.classList.add('winner');
+    for(let i=0;i<12;i++) setTimeout(()=>spawnStar(tSign.x+20, window.innerHeight-250), i*80);
+    setTimeout(()=>{
+      document.getElementById('resultTicker').textContent = tSign.ticker;
+      document.getElementById('reasonText').textContent = aiReason;
+      document.getElementById('result-banner').classList.add('show');
+    }, 1000);
+  });
+}
+
+function spawnStar(x,y) {
+  const s=document.createElement('div');
+  s.className='star';
+  s.textContent=['⭐','✨','🌟','💫','🎉'][Math.floor(Math.random()*5)];
+  s.style.left=x+(Math.random()-0.5)*60+'px';
+  s.style.top=y+(Math.random()-0.5)*60+'px';
+  s.style.setProperty('--dx',(Math.random()-0.5)*120+'px');
+  s.style.setProperty('--dy',-(40+Math.random()*80)+'px');
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(),1300);
+}
+
+function resetGame() {
+  cancelAnimationFrame(animFrame);
+  stopLegAnim();
+  gamePhase='input';
+  document.getElementById('result-banner').classList.remove('show');
+  document.querySelectorAll('.sign-container').forEach(e=>e.remove());
+  bubble.classList.remove('show');
+  const t=getTongue(); if(t) t.style.opacity='0';
+  setDogState('idle');
+  dogDir=1; placeDog(80);
+  inputs.forEach(i=>{i.value='';i.classList.remove('filled');});
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('uiPanel').style.opacity='1';
+  document.getElementById('uiPanel').style.pointerEvents='';
+}
+
+// ═══════════════════════════════════════════════════
+// 초기화: 첫 강아지 삽입
+// ═══════════════════════════════════════════════════
+applyBreed(currentBreed);
+placeDog(80);
+</script>
+</body>
+</html>
