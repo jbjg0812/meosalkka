@@ -1,0 +1,205 @@
+// 정비지원 시스템 DB 스키마 (SQLite)
+// 코드값은 SQLite 호환을 위해 문자열로 저장하고 src/lib/constants.ts에서 제한한다.
+//   Category : FIREPOWER | MOBILITY | COMMS | GENERAL | UNCLASSIFIED
+//   Status   : RECEIVED | CONFIRMED | IN_PROGRESS | DONE | ON_HOLD
+//   Role     : ADMIN | STAFF
+
+generator client {
+  provider = "prisma-client-js"
+  // 폐쇄망 이전 시 대상 서버 OS용 엔진을 함께 받아두기 위함
+  binaryTargets = ["native", "debian-openssl-3.0.x", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  username     String    @unique
+  passwordHash String
+  name         String // 계급·성명
+  role         String // ADMIN | STAFF
+  field        String? // 담당 분야 (관리자는 null)
+  active       Boolean   @default(true)
+  mustChangePw Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  sessions      Session[]
+  assigned      Request[]       @relation("Assignee")
+  statusChanges StatusHistory[]
+  actionNotes   ActionNote[]
+  replies       Reply[]
+  reads         RequestRead[]
+  keywords      Keyword[]
+  posts         Post[]
+  comments      Comment[]
+}
+
+model Session {
+  id        String   @id // 세션 토큰의 SHA-256 해시
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// 정비신청
+model Request {
+  id            Int       @id @default(autoincrement())
+  receiptNo     String    @unique // 예: 20261004-0007
+  equipmentName String
+  symptom       String
+  unit          String // 신청자 소속
+  applicantName String
+  phone         String // 숫자만 저장, 정비인원에게만 노출
+  urgency       String // URGENT | NORMAL
+  category      String // 분류 결과
+  classifiedBy  String    @default("AUTO") // AUTO | MANUAL
+  matchedWords  String? // 자동분류 근거 키워드(JSON 배열)
+  status        String    @default("RECEIVED")
+  assigneeId    Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  confirmedAt   DateTime?
+  completedAt   DateTime?
+
+  assignee User?           @relation("Assignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  photos   RequestPhoto[]
+  history  StatusHistory[]
+  actions  ActionNote[]
+  replies  Reply[]
+  reads    RequestRead[]
+  posts    Post[]
+
+  @@index([category, status, createdAt])
+  @@index([status])
+}
+
+model RequestPhoto {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  path      String // UPLOAD_DIR 기준 상대경로
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
+}
+
+model StatusHistory {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  from      String?
+  to        String
+  note      String?
+  actorId   Int?
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([requestId])
+}
+
+// 조치내용 (내부 기록, 신청자에게 비공개)
+model ActionNote {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([requestId])
+}
+
+// 신청자에게 공개되는 답글
+model Reply {
+  id        Int      @id @default(autoincrement())
+  requestId Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([requestId])
+}
+
+// 사용자별 열람 기록 (미확인 배지)
+model RequestRead {
+  userId    Int
+  requestId Int
+  readAt    DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@id([userId, requestId])
+}
+
+// 자동분류 키워드 사전
+model Keyword {
+  id          Int      @id @default(autoincrement())
+  word        String   @unique // 공백 제거 + 소문자로 정규화
+  category    String
+  active      Boolean  @default(true)
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+}
+
+// 정비인원 게시판
+model Post {
+  id              Int         @id @default(autoincrement())
+  authorId        Int
+  title           String
+  content         String
+  fieldTag        String?
+  sourceRequestId Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  author          User        @relation(fields: [authorId], references: [id])
+  sourceRequest   Request?    @relation(fields: [sourceRequestId], references: [id], onDelete: SetNull)
+  images          PostImage[]
+  comments        Comment[]
+
+  @@index([createdAt])
+}
+
+model PostImage {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  path      String
+  mime      String
+  size      Int
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  authorId  Int
+  content   String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id])
+
+  @@index([postId])
+}
+
+// 요청 횟수 제한 (신청 도배 방지, 로그인 무차별 대입 방지)
+model RateLimit {
+  key         String   @id
+  count       Int
+  windowStart DateTime
+}
