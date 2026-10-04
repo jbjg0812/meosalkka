@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrowserNotifyToggle from "@/components/BrowserNotifyToggle";
 import { logoutAction } from "@/app/actions/auth";
 import { IconLogout } from "@/components/icons";
 import { requireStaff } from "@/lib/auth";
@@ -24,6 +25,7 @@ export default async function AccountPage() {
           </div>
         ))}
       </dl>
+      <BrowserNotifyToggle />
       <Link href="/account/password" className="btn-outline w-full">비밀번호 변경</Link>
       <form action={logoutAction}>
         <button className="btn-outline w-full text-red-600">

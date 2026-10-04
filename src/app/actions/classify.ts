@@ -7,6 +7,8 @@ import { normalizeKeyword } from "@/lib/classify";
 import { classifyWithDb, matchedWordsJson } from "@/lib/classify-db";
 import { CATEGORIES, CATEGORY_LABEL, FIELDS, type Category, type Field } from "@/lib/constants";
 import { prisma } from "@/lib/db";
+import { withRo } from "@/lib/hangul";
+import { canHandle } from "@/lib/permissions";
 
 export type ActionResult = { ok: boolean; message: string };
 
@@ -47,7 +49,7 @@ async function upsertKeyword(raw: string, category: Field, userId: number): Prom
       message:
         existing.category === category
           ? `'${word}' 키워드를 다시 활성화했습니다.`
-          : `'${word}' 키워드를 ${CATEGORY_LABEL[existing.category as Field]} → ${CATEGORY_LABEL[category]}(으)로 변경했습니다.`,
+          : `'${word}' 키워드를 ${CATEGORY_LABEL[existing.category as Field]} → ${withRo(CATEGORY_LABEL[category])} 변경했습니다.`,
     };
   }
   await prisma.keyword.create({ data: { word, category, createdById: userId } });
@@ -68,6 +70,7 @@ export async function reclassifyAction(input: { requestId: number; category: Cat
     const { requestId, category, addKeyword } = reclassifySchema.parse(input);
     const req = await prisma.request.findUnique({ where: { id: requestId } });
     if (!req) return { ok: false, message: "신청 건을 찾을 수 없습니다." };
+    if (!canHandle(user, req.category)) return { ok: false, message: "담당 분야의 신청만 분류를 바꿀 수 있습니다." };
 
     const messages: string[] = [];
     if (req.category !== category) {
@@ -83,7 +86,7 @@ export async function reclassifyAction(input: { requestId: number; category: Cat
           },
         }),
       ]);
-      messages.push(`${CATEGORY_LABEL[category]}(으)로 분류했습니다.`);
+      messages.push(`${withRo(CATEGORY_LABEL[category])} 분류했습니다.`);
     }
 
     if (addKeyword) {

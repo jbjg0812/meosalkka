@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconChart, IconChat, IconList, IconUser } from "./icons";
+import { useNotifications } from "./NotificationProvider";
 
 type Item = { href: string; label: string; icon: React.ReactNode; badge?: number };
 
 export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const { mine } = useNotifications();
   const items: Item[] = [
-    { href: "/board", label: "분야 게시판", icon: <IconList /> },
+    { href: "/board", label: "분야 게시판", icon: <IconList />, badge: mine },
     { href: "/forum", label: "정비인원 게시판", icon: <IconChat /> },
     ...(isAdmin ? [{ href: "/admin", label: "관리", icon: <IconChart /> }] : []),
     { href: "/account", label: "내 정보", icon: <IconUser /> },
@@ -24,11 +26,16 @@ export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
             <li key={it.href} className="flex-1">
               <Link
                 href={it.href}
-                className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
+                className={`relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
                   active ? "text-brand-700" : "text-stone-500"
                 }`}
               >
                 {it.icon}
+                {!!it.badge && (
+                  <span className="absolute top-1 left-1/2 ml-2 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] leading-4 font-bold text-white">
+                    {it.badge > 99 ? "99+" : it.badge}
+                  </span>
+                )}
                 {it.label}
               </Link>
             </li>

@@ -21,3 +21,11 @@ export function toJamo(s: string): string {
   }
   return out;
 }
+
+/** 조사 '으로/로' 선택: 받침이 없거나 ㄹ 받침이면 '로' (완료로, 확인으로) */
+export function withRo(word: string): string {
+  const last = word.charCodeAt(word.length - 1) - 0xac00;
+  if (last < 0 || last >= 11172) return `${word}(으)로`;
+  const jong = last % 28;
+  return word + (jong === 0 || jong === 8 ? "로" : "으로");
+}

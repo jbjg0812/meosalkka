@@ -16,6 +16,7 @@ export type SessionUser = {
   role: Role;
   field: Field | null;
   mustChangePw: boolean;
+  createdAt: Date;
 };
 
 function hashToken(token: string) {
@@ -68,6 +69,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     role: u.role as Role,
     field: (u.field as Field | null) ?? null,
     mustChangePw: u.mustChangePw,
+    createdAt: u.createdAt,
   };
 });
 
