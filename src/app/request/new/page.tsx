@@ -1,11 +1,17 @@
-import Link from "next/link";
+import PublicHeader from "@/components/PublicHeader";
+import { issueFormToken } from "@/lib/sign";
+import RequestForm from "./RequestForm";
 
 export const metadata = { title: "정비 신청" };
+export const dynamic = "force-dynamic"; // 폼 토큰을 매 요청마다 새로 발급
 
 export default function NewRequestPage() {
   return (
-    <main className="mx-auto max-w-md px-4 py-10 text-center text-sm text-stone-500">
-      정비 신청 화면은 2단계에서 구현됩니다. <Link href="/" className="underline">처음으로</Link>
-    </main>
+    <>
+      <PublicHeader title="정비 신청" />
+      <main className="mx-auto max-w-xl px-4 py-4 pb-10">
+        <RequestForm formToken={issueFormToken()} />
+      </main>
+    </>
   );
 }
