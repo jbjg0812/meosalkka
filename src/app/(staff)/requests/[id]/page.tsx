@@ -29,6 +29,7 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
       photos: true,
       assignee: { select: { name: true } },
       history: { orderBy: { createdAt: "asc" }, include: { actor: { select: { name: true } } } },
+      posts: { select: { id: true, title: true } },
       actions: { orderBy: { createdAt: "asc" }, include: { author: { select: { name: true } } } },
       replies: { orderBy: { createdAt: "asc" }, include: { author: { select: { name: true } } } },
     },
@@ -150,6 +151,25 @@ export default async function RequestDetailPage({ params }: { params: Promise<{ 
         </ul>
         {handle && <NoteComposer requestId={req.id} kind="action" />}
       </section>
+
+      {req.status === "DONE" && (
+        <section className="card space-y-2 p-4">
+          <h2 className="font-bold">정비 사례로 남기기</h2>
+          {req.posts.length > 0 && (
+            <ul className="space-y-1 text-sm">
+              {req.posts.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/forum/${p.id}`} className="text-brand-700 underline">{p.title}</Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Link href={`/forum/new?from=${req.id}`} className="btn-outline w-full">
+            정비인원 게시판으로 가져오기
+          </Link>
+          <p className="text-xs text-stone-500">증상·조치내용이 채워진 글쓰기 화면이 열립니다. 신청자 개인정보는 포함되지 않습니다.</p>
+        </section>
+      )}
 
       <section className="card p-4">
         <h2 className="mb-3 font-bold">처리 이력</h2>

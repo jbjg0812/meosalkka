@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -56,4 +56,10 @@ export function resolveUpload(rel: string): string | null {
   const abs = path.resolve(root, rel);
   if (!abs.startsWith(root + path.sep)) return null;
   return abs;
+}
+
+/** 업로드 파일 삭제 (실패해도 무시) */
+export async function removeUpload(rel: string) {
+  const abs = resolveUpload(rel);
+  if (abs) await unlink(abs).catch(() => {});
 }
