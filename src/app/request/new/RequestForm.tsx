@@ -3,13 +3,14 @@
 import { useActionState, useState, useTransition } from "react";
 import { createRequestAction } from "@/app/actions/request";
 import FormMessage from "@/components/FormMessage";
+import EquipmentAutocomplete, { type Suggestion } from "@/components/EquipmentAutocomplete";
 import PhotoPicker, { type PickedPhoto } from "@/components/PhotoPicker";
 
 function FieldError({ msg }: { msg?: string }) {
   return msg ? <p className="mt-1 text-xs text-red-600">{msg}</p> : null;
 }
 
-export default function RequestForm({ formToken }: { formToken: string }) {
+export default function RequestForm({ formToken, suggestions }: { formToken: string; suggestions: Suggestion[] }) {
   const [state, action] = useActionState(createRequestAction, undefined);
   const [pending, startTransition] = useTransition();
   const [photos, setPhotos] = useState<PickedPhoto[]>([]);
@@ -38,7 +39,7 @@ export default function RequestForm({ formToken }: { formToken: string }) {
         <h2 className="font-bold text-stone-800">장비 정보</h2>
         <div>
           <label htmlFor="equipmentName" className="label">장비명 <span className="text-red-600">*</span></label>
-          <input id="equipmentName" name="equipmentName" required maxLength={100} placeholder="예: K-9 자주포, 무전기 PRC-999K" className="input" />
+          <EquipmentAutocomplete id="equipmentName" name="equipmentName" maxLength={100} placeholder="예: K-9 자주포, 무전기 PRC-999K" suggestions={suggestions} />
           <FieldError msg={fe.equipmentName} />
         </div>
         <div>
