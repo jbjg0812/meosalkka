@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { classifyWithDb, matchedWordsJson } from "@/lib/classify-db";
 import { kstDateKey } from "@/lib/format";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
 import { hitRateLimit, isRateLimited } from "@/lib/rate-limit";
@@ -92,6 +93,8 @@ export async function createRequestAction(_: RequestFormState, formData: FormDat
     paths.push({ path: await saveImage("requests", img), mime: img.mime, size: img.buf.length });
   }
 
+  const cls = await classifyWithDb(data.equipmentName, data.symptom);
+
   let receiptNo = "";
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
@@ -108,7 +111,9 @@ export async function createRequestAction(_: RequestFormState, formData: FormDat
           data: {
             receiptNo: no,
             ...data,
-            category: "UNCLASSIFIED", // 3단계에서 키워드 자동 분류 적용
+            category: cls.category,
+            classifiedBy: "AUTO",
+            matchedWords: matchedWordsJson(cls),
             photos: { create: paths },
             history: { create: { from: null, to: "RECEIVED", note: "신청 접수" } },
           },

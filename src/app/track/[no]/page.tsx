@@ -18,7 +18,7 @@ export default async function TrackResultPage({ params }: { params: Promise<{ no
   const req = await prisma.request.findUnique({
     where: { receiptNo: no },
     include: {
-      history: { orderBy: { createdAt: "asc" } },
+      history: { orderBy: { createdAt: "asc" } }, // 분류 변경 등 상태가 그대로인 기록은 아래에서 제외
       replies: { orderBy: { createdAt: "asc" }, include: { author: { select: { name: true } } } },
       _count: { select: { photos: true } },
     },
@@ -86,7 +86,7 @@ export default async function TrackResultPage({ params }: { params: Promise<{ no
         <section className="card p-4">
           <h3 className="mb-3 font-bold">처리 이력</h3>
           <ol className="relative space-y-3 border-l-2 border-stone-200 pl-4">
-            {req.history.map((h) => (
+            {req.history.filter((h) => h.from !== h.to).map((h) => (
               <li key={h.id} className="relative">
                 <span className="absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full bg-brand-600" aria-hidden />
                 <div className="text-sm font-semibold">{STATUS_LABEL[h.to as Status] ?? h.to}</div>

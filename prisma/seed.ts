@@ -5,6 +5,7 @@
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { normalizeKeyword as norm } from "../src/lib/classify";
 
 try {
   process.loadEnvFile(".env");
@@ -35,7 +36,6 @@ const KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-const norm = (s: string) => s.replace(/\s+/g, "").toLowerCase();
 
 async function main() {
   const demo = process.argv.includes("--demo");
