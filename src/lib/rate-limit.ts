@@ -6,6 +6,10 @@ import { prisma } from "./db";
  */
 export async function hitRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
   const now = new Date();
+  // 가끔 하루 지난 기록을 정리해 테이블이 계속 커지지 않게 한다
+  if (Math.random() < 0.02) {
+    await prisma.rateLimit.deleteMany({ where: { windowStart: { lt: new Date(now.getTime() - 86_400_000) } } });
+  }
   const row = await prisma.rateLimit.findUnique({ where: { key } });
   if (!row || now.getTime() - row.windowStart.getTime() > windowMs) {
     await prisma.rateLimit.upsert({

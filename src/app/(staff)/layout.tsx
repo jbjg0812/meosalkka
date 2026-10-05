@@ -14,7 +14,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const counts = showNav ? await getUnreadCounts(user) : { byCategory: {}, mine: 0 };
 
   return (
-    <NotificationProvider initial={{ unread: counts.byCategory, mine: counts.mine }}>
+    <NotificationProvider initial={{ unread: counts.byCategory, mine: counts.mine }} enabled={showNav}>
       <div className="min-h-dvh pb-20 md:pb-8">
         <header className="sticky top-0 z-20 bg-brand-800 text-white shadow">
           <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4">

@@ -17,7 +17,7 @@ const POLL_MS = 20_000;
  * 20초마다 서버에 새 신청을 확인한다 (외부 푸시 서비스 불필요).
  * 담당 분야 신규 신청이 오면 화면 알림(토스트)과, 허용된 경우 브라우저 알림을 띄운다.
  */
-export default function NotificationProvider({ initial, children }: { initial: Counts; children: React.ReactNode }) {
+export default function NotificationProvider({ initial, enabled = true, children }: { initial: Counts; enabled?: boolean; children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [counts, setCounts] = useState<Counts>(initial);
@@ -25,10 +25,12 @@ export default function NotificationProvider({ initial, children }: { initial: C
   const since = useRef(new Date().toISOString());
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
+  const [active, setActive] = useState(enabled);
 
   const poll = useCallback(async () => {
     try {
       const res = await fetch(`/api/notifications?since=${encodeURIComponent(since.current)}`, { cache: "no-store" });
+      if (res.status === 401) return setActive(false); // 로그아웃·비활성화된 경우 폴링 중단
       if (!res.ok) return;
       const data: Counts & { now: string; fresh: Fresh[] } = await res.json();
       since.current = data.now;
@@ -44,6 +46,7 @@ export default function NotificationProvider({ initial, children }: { initial: C
   }, [router]);
 
   useEffect(() => {
+    if (!active) return;
     const t = setInterval(poll, POLL_MS);
     const onVis = () => document.visibilityState === "visible" && poll();
     document.addEventListener("visibilitychange", onVis);
@@ -51,12 +54,12 @@ export default function NotificationProvider({ initial, children }: { initial: C
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [poll]);
+  }, [poll, active]);
 
   // 상세 화면을 열면(읽음 처리) 배지를 바로 갱신
   useEffect(() => {
-    poll();
-  }, [pathname, poll]);
+    if (active) poll();
+  }, [pathname, poll, active]);
 
   useEffect(() => {
     if (!toasts.length) return;

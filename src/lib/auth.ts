@@ -27,6 +27,8 @@ export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   await prisma.session.create({ data: { id: hashToken(token), userId, expiresAt } });
+  // 만료된 세션 정리
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
   const jar = await cookies();
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,

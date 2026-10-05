@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 
-// 리버스 프록시(nginx 등) 뒤에서 운영할 경우 X-Forwarded-For의 첫 값을 사용
+// server.mjs가 X-Forwarded-For를 실제 접속 IP로 덮어쓴다 (TRUST_PROXY=true면 프록시가 넣은 값 사용)
 export async function getClientIp(): Promise<string> {
   const h = await headers();
   const xff = h.get("x-forwarded-for");

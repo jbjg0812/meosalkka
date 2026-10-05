@@ -9,6 +9,7 @@ export default function AdminTabs({ unclassified }: { unclassified?: number }) {
     { href: "/admin", label: "대시보드" },
     { href: "/admin/unclassified", label: "미분류", badge: unclassified },
     { href: "/admin/keywords", label: "키워드 사전" },
+    { href: "/admin/users", label: "계정 관리" },
   ];
   return (
     <nav className="-mx-4 mb-4 overflow-x-auto border-b border-stone-200 px-4">
